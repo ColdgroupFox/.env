@@ -1,18 +1,13 @@
 [
   {
-    "icon": "Blog",
-    "name": "博客",
-    "link": "https://blog.imsyy.top/"
-  },
-  {
     "icon": "Cloud",
     "name": "网盘",
     "link": "https://www.123684.com/s/lKn3jv-EjIWA"
   },
   {
     "icon": "CompactDisc",
-    "name": "音乐",
-    "link": "https://coldgroupfox-music.vercel.app/"
+    "name": "音乐歌单",
+    "link": "https://music.163.com/#/playlist?id=727860823"
   },
   {
     "icon": "Compass",
