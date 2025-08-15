@@ -24,7 +24,7 @@ import { h } from "vue";
 import { Error } from "@icon-park/vue-next";
 
 // 高德开发者 Key
-const mainKey = import.meta.env.VITE_WEATHER_KEY || "2dc8fcb6b3fec61561562016ac78c197";
+const mainKey = "2dc8fcb6b3fec61561562016ac78c197";
 
 // 太原市默认配置
 const DEFAULT_CITY = {
