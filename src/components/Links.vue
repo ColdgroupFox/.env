@@ -67,7 +67,7 @@ const siteIcon = {
   Cloud,
   CompactDisc,
   Compass,
-  Book,
+  Tiktok,
   Fire,
   LaptopCode,
 };
