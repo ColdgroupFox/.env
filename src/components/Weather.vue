@@ -19,96 +19,99 @@
 
 <script setup>
 import { getAdcode, getWeather, getOtherWeather } from "@/api";
+import { ElMessage } from "element-plus";
+import { h } from "vue";
 import { Error } from "@icon-park/vue-next";
 
 // 高德开发者 Key
-const mainKey ="2dc8fcb6b3fec61561562016ac78c197";
+const mainKey = import.meta.env.VITE_WEATHER_KEY || "2dc8fcb6b3fec61561562016ac78c197";
+
+// 太原市默认配置
+const DEFAULT_CITY = {
+  city: "太原市",
+  adcode: "141000" // 太原市行政区划代码
+};
 
 // 天气数据
 const weatherData = reactive({
-  adCode: {
-    city: null, // 城市
-    adcode: null, // 城市编码
-  },
+  adCode: { ...DEFAULT_CITY },
   weather: {
-    weather: null, // 天气现象
-    temperature: null, // 实时气温
-    winddirection: null, // 风向描述
-    windpower: null, // 风力级别
-  },
+    weather: null,
+    temperature: null,
+    winddirection: null,
+    windpower: null
+  }
 });
 
-// 取出天气平均值
-const getTemperature = (min, max) => {
-  try {
-    // 计算平均值并四舍五入
-    const average = (Number(min) + Number(max)) / 2;
-    return Math.round(average);
-  } catch (error) {
-    console.error("计算温度出现错误：", error);
-    return "NaN";
-  }
+// 错误处理函数
+const handleError = (message) => {
+  ElMessage.error({ message, icon: h(Error) });
+  console.error("[天气服务错误]", message);
 };
 
-// 获取天气数据
+// 获取天气数据（增强版）
 const getWeatherData = async () => {
   try {
-    // 获取地理位置信息
+    // 优先使用配置的 Key
     if (!mainKey) {
-      console.log("未配置，使用备用天气接口");
+      console.log("未配置 Key，使用备用接口");
       const result = await getOtherWeather();
-      console.log(result);
-      const data = result.result;
       weatherData.adCode = {
-        city: data.city.City || "未知地区",
-        // adcode: data.city.cityId,
+        city: result.cityName || DEFAULT_CITY.city,
+        adcode: result.adcode || DEFAULT_CITY.adcode
       };
-      weatherData.weather = {
-        weather: data.condition.day_weather,
-        temperature: getTemperature(data.condition.min_degree, data.condition.max_degree),
-        winddirection: data.condition.day_wind_direction,
-        windpower: data.condition.day_wind_power,
-      };
-    } else {
-      // 获取 Adcode
-      const adCode = await getAdcode(mainKey);
-      console.log(adCode);
-      if (adCode.infocode !== "10000") {
-        throw "地区查询失败";
-      }
-      weatherData.adCode = {
-        city: adCode.city,
-        adcode: adCode.adcode,
-      };
-      // 获取天气信息
-      const result = await getWeather(mainKey, weatherData.adCode.adcode);
-      weatherData.weather = {
-        weather: result.lives[0].weather,
-        temperature: result.lives[0].temperature,
-        winddirection: result.lives[0].winddirection,
-        windpower: result.lives[0].windpower,
-      };
+      weatherData.weather = parseWeatherData(result);
+      return;
     }
+
+    // 尝试获取城市信息
+    let adCode = await getAdcode(mainKey);
+    
+    // 回退逻辑：若获取失败则使用默认值
+    if (!adCode || adCode.infocode !== "10000") {
+      console.warn("城市查询失败，自动切换至太原市");
+      adCode = { city: DEFAULT_CITY.city, adcode: DEFAULT_CITY.adcode };
+    }
+
+    // 获取天气信息（带重试机制）
+    let retryCount = 0;
+    const maxRetries = 2;
+    while (retryCount < maxRetries) {
+      const weatherRes = await getWeather(mainKey, adCode.adcode);
+      if (weatherRes.status === "1") {
+        weatherData.weather = parseWeatherData(weatherRes);
+        return;
+      }
+      retryCount++;
+      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // 延迟重试
+    }
+
+    throw new Error("天气数据获取失败，请检查网络或稍后重试");
+
   } catch (error) {
-    console.error("天气信息获取失败:" + error);
-    onError("天气信息获取失败");
+    handleError(error.message);
+    // 最终回退：显示默认城市天气
+    weatherData.adCode = { ...DEFAULT_CITY };
+    weatherData.weather = {
+      weather: "晴",    // 默认天气
+      temperature: "20",// 默认温度
+      winddirection: "无持续风向",
+      windpower: "微风"
+    };
   }
 };
 
-// 报错信息
-const onError = (message) => {
-  ElMessage({
-    message,
-    icon: h(Error, {
-      theme: "filled",
-      fill: "#efefef",
-    }),
-  });
-  console.error(message);
+// 数据解析工具函数
+const parseWeatherData = (res) => {
+  return {
+    weather: res.lives?.[0]?.weather || "晴",
+    temperature: res.lives?.[0]?.temperature || "20",
+    winddirection: res.lives?.[0]?.winddirection || "无持续风向",
+    windpower: res.lives?.[0]?.windpower || "微风"
+  };
 };
 
 onMounted(() => {
-  // 调用获取天气
   getWeatherData();
 });
 </script>
