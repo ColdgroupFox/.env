@@ -58,8 +58,8 @@ const getHitokotoData = async () => {
         fill: "#efefef",
       }),
     });
-    hitokotoData.text = "这里应该显示一句话";
-    hitokotoData.from = "無名";
+    hitokotoData.text = "乘风破浪浮云远，御涛凌云题金名";
+    hitokotoData.from = "ColdFox";
   }
 };
 
